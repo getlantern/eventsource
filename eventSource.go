@@ -14,18 +14,19 @@ http://cjihrig.com/blog/the-server-side-of-server-sent-events/
 package eventsource
 
 import (
-	"fmt"
 	"net/http"
 )
 
 type Conn struct {
+	Req    *http.Request
 	writer http.ResponseWriter
 	http.Flusher
 	http.CloseNotifier
 }
 
-func (c Conn) Write(message string) {
-	c.writer.Write([]byte(fmt.Sprintf("data: %s", message)))
+func (c Conn) Write(msg []byte) {
+	c.writer.Write([]byte("data: "))
+	c.writer.Write(msg)
 	c.writer.Write([]byte("\n\n"))
 	c.Flush()
 }
@@ -49,8 +50,9 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	f.Flush()
 
-	h(&Conn{w, f, cn})
+	h(&Conn{req, w, f, cn})
 }
